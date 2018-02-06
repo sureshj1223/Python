@@ -1,0 +1,183 @@
+({
+"title":"MLB Shop storefront",
+"client_ip":"127.0.0.1",
+"link":"http://www.fanatics.com/groups/mlb/winner/",
+"description":"Shop for the winning team",
+"modified":"2009-02-02T:10:27Z",
+"server_instance": "5",
+"version_no":"5.1",
+"generator":"http://www.fanatics.com/",
+"title":"MLB Shop",
+"link":"http://www.fanatics.com/mlb/331808/3081564649/in/winner-9988722",
+"media": "http://farm4.st.fanatics.com/3037/3089_m.jpg",
+"date_taken": "2008-12-04T04:43:03-08:00",
+"description": " Talk On Travel< /a> has added a photo to the pool:< /p> </a>< /p> ",
+"published": "2008-12-04T12:43:03Z", 
+"author": "nobody@fanatics.com(MLB winner)",
+"author_id": "331808",
+"tags": "mlb shop winner discount"
+})
+
+
+
+
+
+
+
+
+
+
+import json
+from dateutil.parser import parse
+import ipaddress
+
+
+     
+
+#  fucntion to verify ip data type
+def is_ip(string):
+    try:
+        ipaddress.ip_address(string)
+        return True
+    except ValueError:
+        return False
+     
+
+# function to verify date error
+
+def is_date(string):
+    try: 
+        parse(string)
+        return True
+    except ValueError:
+        return False
+
+# function to verify url data type     
+    
+def is_url(string):
+    if "http://" in string:
+        return True
+    else :
+        return False
+
+# function to verify float data type
+        
+def is_float(string):
+    try:
+        float(string)
+        return True
+    except ValueError:
+        return False
+
+# function to verify int data type
+        
+def is_int(string):
+    try:
+        int(string)
+        return True
+    except ValueError:
+        return False
+
+
+# function to replace chars in string
+
+def my_replace(string):
+    return string.replace("\"","")   
+
+# function to replace extra ":" from the string
+    
+def strip(string):
+    return string[1:]
+
+
+
+
+def parser(string):
+   # basic data transformations on the data
+    data= string.replace("\n","") 
+    data=data.replace("(","")
+    data=data.replace(")","")
+    data=data.replace("{","")
+    data=data.replace("}","")
+    # because there are multiple keys elements like link, description which are repeated 
+    # Reading the data with json.loads replaces certain elements
+    data_list=data.split(",")
+    # replacing the " from the strings
+    data_list2=list(map(my_replace,data_list))
+    #output_dict = json.loads(data)
+
+    # assorting the values into keys ,values by seperating them based on :
+    output_list=list()
+    
+    for i in data_list2:
+        output_list.append(i.split(":"))
+    
+    # extracting the key values    
+    keys=list()
+
+    for i in output_list:
+        keys.append(i[0])    
+    
+    # extracting the values
+    values=list()
+
+    for i in output_list:
+        temp=""
+        for j in range(1,len(i)):
+           temp=temp+":"+i[j]
+           values.append(temp)   
+
+    values2=list()
+    # removing the extra : from the values
+    values2=list(map(strip,values))    
+    
+    # extracting the data type of the string
+    data_type=list()
+
+    # Now to print all the data in needed format
+    # key,value,data type
+    for i in values2:
+        if is_ip(i):
+            data_type.append("IP")
+        elif is_int(i):
+            data_type.append("int")
+        elif is_url(i):
+            data_type.append("url")
+        elif is_float(i):
+            data_type.append("float")
+        elif is_date(i):
+            data_type.append("datetime")
+        else:
+            data_type.append("string")
+
+    return keys,values2,data_type
+
+#def main():
+    #  Reading the input from the file
+path="C:\\Users\\dsurya\\Desktop\\suresh.json"
+with open(path,"r") as file:
+   data=file.read()
+keys,values2,data_type=parser(data)
+for i in range(0,17):
+print (keys[i] + " "+ values2[i]+ " "+ data_type[i])        
+        
+        
+    
+#if __name__=="__main__":
+ #   main()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

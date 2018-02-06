@@ -1,0 +1,43 @@
+# Writing Code to make connections to MS SQL SERVER
+# import the module pyodbc
+import pyodbc
+
+import pymssql
+
+# Define a connection object
+# The connection object requires the following arguments
+# DRIVERs to connect to data base and are system specific
+# Returns a list
+# Pass the kwargs (key word arguments ) dictionary
+
+
+try: 
+ con= pyodbc.connect('DRIVER={SQL Server};SERVER=DESKTOP-DUUU61M;DATABASE=practice;Trusted_Connection=yes;')
+except Exception as e:
+  print e
+
+
+# Create a curosor object to use the data base for the operations
+
+cursor = con.cursor()
+
+# To execute SQL statements we use the execute function
+# The returned rows can be retrieved from fetch functions
+# fetchone() fetchall() fetchmany()
+
+cursor.execute("SELECT * FROM practicetable")
+
+# The result is in cursor object now to retrieve it
+
+data = cursor.fetchall()
+
+for row in data:
+        print "The Name of the person is %s and the technology he is working on is %s " % (row[0],row[1])
+
+
+cursor.close()
+con.close()
+
+
+
+

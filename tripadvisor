@@ -1,0 +1,350 @@
+import os # for path and directory operations
+import json # for json.loads to load the json file to a dictionary
+from bs4 import BeautifulSoup 
+import pandas as pd
+from collections import Counter # table equivalent of R 
+import re  # package for regular expressions
+from nltk.corpus import stopwords # for stop words
+from functools import reduce # reduce function to flatten lists for my case
+from nltk.stem import SnowballStemmer,WordNetLemmatizer
+import matplotlib.pyplot as plt
+# words with very little meaning are stop words
+import operator # to sort a dictionary
+ 
+os.chdir('C:\\Users\\dsurya\\Documents\\python_scripts')
+
+
+from clean import * # own class to convert objects to lower
+
+# importing 153378 json file from the trip advisor directory
+file = open("C:\\Users\\dsurya\\Documents\\trip advisor\\153378.json","r")
+hoteldata = json.load(file)
+hotelinfo = pd.DataFrame(hoteldata['HotelInfo'],index=[0])
+reviews = pd.DataFrame(hoteldata['Reviews'])
+
+
+
+# clean Address with beautiful soap with "lxml" parser
+hotelinfo.replace(to_replace=list(hotelinfo["Address"]),
+                  value= BeautifulSoup(hotelinfo['Address'][0],"lxml").text,inplace=True)
+
+
+# columns with text data cols = ['Author','AuthorLocation','Content','Title']
+#reviews.loc[:,cols]=reviews.loc[:,cols].applymap(str.lower)
+reviews = lower.main(reviews)
+
+
+# Change Date column to date time format 
+reviews.loc[:,'Date']= pd.to_datetime(reviews.Date)
+
+
+#remove first and last disruptive characters from trim
+specialsymbolremove = lambda x: x[1:-1]  
+reviews['Title']= list(map(specialsymbolremove,reviews['Title']))
+
+
+
+#remove smileys
+
+
+smileydict = json.load(open("smiley.json","r",encoding='utf-8'))
+
+def smileyreplace(obj,smileydict=smileydict):
+    temp= obj.split(' ')
+    temp = [smileydict[i] if i in smileydict else i for i in temp]
+    return ' '.join(temp)
+
+
+reviews['Title'] = list(map(smileyreplace,reviews['Title']))
+reviews['Content']= list(map(smileyreplace,reviews['Content']))
+
+
+# find all special symbols in the data
+
+specialfind = lambda x: re.findall('[^a-zA-Z0-9\s]',x)
+
+def aposfind(obj):
+    if re.search('[\']',obj):
+        return obj;
+
+
+specialchar= reduce(lambda x,y :x+y,list(map(specialfind,reviews['Title'])))
+sepcialchar = set(specialchar)
+
+
+specialchar2= reduce(lambda x,y :x+y,list(map(specialfind,reviews['Content'])))
+sepcialchar2 = set(specialchar2)
+
+
+
+    
+# remove apostopehes and replace words
+
+contractions=json.load(open("contractions.json","r"),encoding='utf-8')
+
+def aposreplace(obj,contractions=contractions):
+    temp= obj.split(' ')
+    temp = [contractions[i] if i in contractions else i for i in temp]
+    return ' '.join(temp)
+
+
+reviews['Title'] = list(map(aposreplace,reviews['Title']))
+reviews['Content']= list(map(aposreplace,reviews['Content']))
+
+#replace all special characters
+
+specialreplace = lambda x: re.sub("[^\'a-zA-Z\s]","",x)
+
+reviews['Title'] = list(map(specialreplace,reviews['Title']))
+reviews['Content']= list(map(specialreplace,reviews['Content']))
+
+
+# Now replacing apostrophees after replace special chars with space
+
+reviews['Title'] = list(map(aposreplace,reviews['Title']))
+reviews['Content']= list(map(aposreplace,reviews['Content']))
+
+specialreplace2 = lambda x: re.sub("[\']","",x)
+
+reviews['Title'] = list(map(specialreplace2,reviews['Title']))
+reviews['Content']= list(map(specialreplace2,reviews['Content']))
+
+
+
+# takes some time needed to investigae the character requirement
+titletokens = reduce(lambda x,y: x+y,list(map(lambda x: x.split(' '),reviews['Title'])))
+contenttokens = reduce(lambda x,y: x+y,list(map(lambda x: x.split(' '),reviews['Content'])))
+
+#repalcing extra white space
+whitereplace = lambda x: re.sub("[\s]"," ",x)
+
+reviews['Title'] = list(map(whitereplace,reviews['Title']))
+reviews['Content']= list(map(whitereplace,reviews['Content']))
+
+
+#charfindfunction exploratory function
+
+def charfind(obj,symbol="[^a-zA-Z0-9\s]"):
+    if re.search(symbol,obj):
+        return obj;
+
+c=list(map(charfind,reviews['Title']))
+d=list(map(charfind,contenttokens))
+
+
+
+
+
+words = stopwords.words("english") + ['galaor','gala','playacar','','resort','pool','beach','room','great','time','food','would','sandos','good','great','star','stay','u']
+def stopwordsremove(x,y=words):
+    temp= x.split(' ')
+    temp2 = [i for i in temp if not i in y]
+    return ' '.join(temp2)    
+
+reviews['Title']= list(map(stopwordsremove,reviews['Title']))
+reviews['Content']= list(map(stopwordsremove,reviews['Content']))
+
+
+#lemmatization
+wnl=WordNetLemmatizer()
+def wordlematize(obj):
+    temp= obj.split(' ')
+    temp = list(map(wnl.lemmatize,temp))
+    return ' '.join(temp);
+    
+reviews['Title']= list(map(wordlematize,reviews['Title']))
+reviews['Content']= list(map(wordlematize,reviews['Content']))
+    
+
+
+#stemming words
+sbs = SnowballStemmer("english")
+def wordstemmer(obj):
+    temp= obj.split(' ')
+    temp = list(map(sbs.stem,temp))
+    return ' '.join(temp);
+    
+reviews['Title']= list(map(wordstemmer,reviews['Title']))
+reviews['Content']= list(map(wordstemmer,reviews['Content']))
+    
+
+
+
+
+
+# modelling to find out things
+
+from gensim import corpora,models
+import gensim
+
+#create corpus of title,content
+reviews['Title'] = list(map(str.strip,reviews['Title']))
+reviews['Content'] = list(map(str.strip,reviews['Content']))
+
+
+titletokens = list(map(lambda x:x.split(' '),reviews['Title']))
+contenttokens = list(map(lambda x:x.split(' '),reviews['Content']))
+
+titledict = corpora.Dictionary(titletokens)
+contentdict = corpora.Dictionary(contenttokens)
+
+#  converting the tokenized title to numerical vector--corpus
+
+titlecorpus = list(map(titledict.doc2bow,titletokens))
+contentcorpus = list(map(contentdict.doc2bow,contenttokens))
+
+
+# create transformation models to transform the corpus
+#intialize termfinvedocf
+
+titletfidf = models.TfidfModel(titlecorpus)
+contenttfidf = models.TfidfModel(contentcorpus)
+
+titletranf = titletfidf[titlecorpus]
+contenttranf = contenttfidf[contentcorpus]
+
+# create LSI topics
+
+titlelsi = models.lsimodel.LsiModel(corpus= titletranf,id2word=titledict,num_topics =8,power_iters=2)
+contentlsi = models.lsimodel.LsiModel(corpus= contenttranf,id2word=contentdict,num_topics =10,power_iters=2)
+
+
+# snippet to change plot size in ipython
+#%pylab inline
+#pylab.rcParams['figure.figsize'] = (30, 10)
+
+
+# create object for lda model
+
+lda = gensim.models.ldamodel.LdaModel
+
+titlelda = lda(titlecorpus,num_topics=10,id2word= titledict)
+contentlda = lda(contentcorpus,num_topics= 3,id2word=contentdict)
+
+
+
+
+
+
+#for i in range(0,3):
+   # print (contentlda.print_topic(i,topn=12)+ "\n");
+
+
+
+#for i in range(0,10):
+   # print (contentlsi.print_topic(i,topn=7)+ "\n");
+
+
+# seperating all the negative and positive reviews
+
+
+ratings = pd.read_csv('C:\\Users\\dsurya\\Documents\\python_scripts\\ratings.csv',header=0)
+negative=ratings[ratings['overall']<3]
+negreviews=reviews.iloc[negative.index,:]
+
+titletokens_n = list(map(lambda x:x.split(' '),negreviews['Title']))
+contenttokens_n = list(map(lambda x:x.split(' '),negreviews['Content']))
+
+
+titledict_n = corpora.Dictionary(titletokens_n)
+contentdict_n = corpora.Dictionary(contenttokens_n)
+
+#  converting the tokenized title to numerical vector--corpus
+
+titlecorpus_n = list(map(titledict_n.doc2bow,titletokens_n))
+contentcorpus_n = list(map(contentdict_n.doc2bow,contenttokens_n))
+
+
+# create transformation models to transform the corpus
+#intialize termfinvedocf
+
+titletfidf_n = models.TfidfModel(titlecorpus_n)
+contenttfidf_n = models.TfidfModel(contentcorpus_n)
+
+titletranf_n = titletfidf_n[titlecorpus_n]
+contenttranf_n = contenttfidf_n[contentcorpus_n]
+
+# create LSI topics
+
+titlelsi_n = models.lsimodel.LsiModel(corpus= titletranf_n,id2word=titledict_n,num_topics =7,power_iters=1000)
+contentlsi_n = models.lsimodel.LsiModel(corpus= contenttranf_n,id2word=contentdict_n,num_topics =8,power_iters=1000)
+
+# determinetopics for lsi
+
+#a = contentlsi_n.projection.s
+#b= list(range(0,4))
+
+#plt.plot(a,b)
+#plt.show()
+
+
+titlelda_n = lda(titlecorpus_n,num_topics=10,id2word= titledict_n,iterations=1000)
+contentlda_n = lda(contentcorpus_n,num_topics= 2,id2word=contentdict_n,iterations=1000)
+
+
+
+
+
+#for i in range(0,2):
+   # print (contentlda_n.print_topic(i,topn=12)+ "\n");
+
+
+
+#for i in range(0,4):
+ #   print (contentlsi_n.print_topic(i,topn=20)+ "\n");
+
+
+
+
+
+
+# collect topics from and weights 
+topics = list()
+for i in range(0,7):
+    temp= titlelsi_n.show_topic(i)
+  #  contentlsi_n.show_topic(i)
+  # titlelda_n.show_topic(i)
+  # contentlda_n.show_topic(i)
+    tempdict = dict()
+    for key,value in temp:
+         tempdict[key]=abs(value);
+    topics.append(tempdict);
+     
+
+
+
+
+# plotting
+#https://matplotlib.org/examples/lines_bars_and_markers/barh_demo.html
+#https://matplotlib.org/examples/pylab_examples/subplots_demo.html
+# _ticks to arrange position of the labels
+colors= ['#85802b', '#00749F', '#73C774', '#C7754C', '#17BDB8','green','blue']+ ['gray','yellow','Cyan','green','magenta','red','blue']
+for i in range(0,len(topics)):
+    temp=topics[i];
+    labels = list(reversed(list(temp.keys())));
+    barwidth =list(reversed(list(temp.values())));
+    barpos= list(range(0,len(labels)));
+    plt.barh(barpos,barwidth,color=colors[i]);
+    plt.yticks(barpos,labels);
+    plt.xlabel('Probability of Topic ' + str(i));
+    plt.ylabel('Word');
+    plt.show()
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

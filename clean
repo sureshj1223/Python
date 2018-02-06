@@ -1,0 +1,58 @@
+# int,list,tuple,string,dictionary
+# No error handling in the code
+import pandas as pd
+import json
+import re
+'''
+class apostrophe:
+ contractions=json.load(open("C:\\Users\\dsurya\\Documents\\python_scripts\\contractions.json","r"))
+ 
+    
+    
+   ''' 
+ 
+
+class lower:
+    
+ def main(obj):
+     if type(obj) is dict:
+         return lower.dict2lower(obj);
+     elif type(obj) is str:
+         return str.lower(obj);
+     elif type(obj) is tuple: 
+         return tuple(map(str.lower,obj))
+     elif type(obj) is list:
+         return list(map(str.lower,obj))
+     elif isinstance(obj,pd.DataFrame):
+         return obj.applymap(lower.main);
+     else :
+         return obj;
+         
+ # function to convert dictionaries to lower        
+         
+ def dict2lower(obj):
+   temp = {} # create an empty dictionary
+   keys = list(obj.keys()) 
+   values = list(obj.values())
+   keys = list(map(str.lower,keys))
+   values = list(map(str.lower,values))
+   for i in range(0,len(keys)):
+     temp[keys[i]]= values[i];
+   return temp;      
+ 
+ # function to convert eligible elements in data frame to lower    
+ # takes time cuz it checks each and every object 
+
+'''
+ def df2lower(obj):
+     rows = obj.shape[0]
+     cols = obj.shape[1]
+     for i in range(0,rows):
+         for j in range(0,cols):
+             obj.iloc[i,j]= lower.main(obj.iloc[i,j]);
+     return obj;        
+            
+   '''
+        
+        
+        
